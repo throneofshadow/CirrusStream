@@ -10,7 +10,7 @@ setup(
 
     packages=find_packages(
         # All keyword arguments below are optional:
-        where='src',  # '.' by default
+        where='cirrus_stream',  # '.' by default
         include=['cirrus_stream*'],  # ['*'] by default
         exclude=['cirrus_stream.tests'],  # empty by default
     ),
