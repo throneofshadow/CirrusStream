@@ -1,6 +1,8 @@
 import pandas as pd
 import pdb
 import os
+
+
 class SystemMonitoring:
     def __init__(self, transmission_log_address='/home/ubuntu/data/streamlog.txt', time_out_address = '/home/ubuntu/data/systemd_log.txt'):
         self.transmission_log_address = transmission_log_address

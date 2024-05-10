@@ -1,7 +1,6 @@
 import pandas as pd
 import os
 import glob
-from botocore.exceptions import ClientError
 from cirrus_stream.database.database_engine import DatabaseEngine
 
 
@@ -41,8 +40,9 @@ def send_file_aws(local_address, s3_address, client, object_name=None):
         try:
             os.system("aws s3 mv " + file_address + " " + bucket )
             #response = s3_client.upload_file(file_address, s3_address, Body=fi>
-        except ClientError as e:
+        except:
             print('ClientError transferring S3 files')
+
 
 db_tool = DatabaseEngine()
 # Base addresses

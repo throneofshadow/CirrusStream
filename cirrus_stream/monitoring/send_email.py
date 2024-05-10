@@ -1,4 +1,5 @@
-import smtplib, ssl
+import smtplib
+import ssl
 
 sender_email = "yousolar.production@gmail.com"
 receiver_email = "brett.nelson@yousolar.com"
