@@ -1,5 +1,4 @@
 #!/usr/bin/bash bash
-count=0;
 python3 instance_log_monitoring.py&
 
 until bash forticlient_stream.sh; do
