@@ -3,11 +3,35 @@ import pandas as pd
 import json
 import glob
 import os
+from shlex import quote as shlex_quote
+
+"""
+
+
+"""
+
+
+def test_json(file_address):
+    """ Function intended to test if a json file is valid and able to be parsed using the 'read_json' function.
+        If the file is not loaded, an exception is raised for the caller to handle.
+        @type file_address: str
+        @param file_address : The address of the file to be tested.
+        @return: Boolean        @returns: Boolean
+    """
+    try:
+        open_json_file(file_address, clean=False)
+        return True
+    except Exception:
+        return False
 
 
 def clean_json(file_address):
     """ Function intended to clean an un-parsed data record streamed from Powercon. Not to be
-        used with 'clean' data files.
+        used with 'clean' data files. This function loads a json file and removes the trailing newline.
+        @type file_address: str
+        @param file_address : The address of the file to be cleaned.
+        @return: None        @returns: None
+
     """
     with open(file_address, 'a+') as f:
         f.seek(f.tell() - 1, os.SEEK_SET)
@@ -22,12 +46,17 @@ def clean_json(file_address):
     return
 
 
-def open_json_file(file_address):
+def open_json_file(file_address, clean=False):
     """ Function intended to provide cleaning, reading functionality for json data structures.
         Json data structures are un-even w.r.t. each structure, however are consistent in structure between
         record type. Json data structures must be cleaned (remove trailing comma, add list indices) before
         reading can occur. Use the 'clean_json' function.
         Returns a list of json structures used for PowerBlock data records.
+        @param clean: Boolean, clean data or not
+        @type clean: Boolean
+        @type file_address: str
+        @param file_address : The address of the file to be cleaned.
+        @return: list        @returns: list of json structures
 
     """
     with open(file_address) as f:
@@ -35,27 +64,42 @@ def open_json_file(file_address):
             return json.load(f)
         except:
             f.close()  # close file attempting to be cleaned.
-            try:
-                print('Sanitizing JSON file. ')
-                clean_json(file_address)
-                with open(file_address) as ff:
-                    return json.load(ff)
-            except:
-                print('cannot load file ' + str(file_address))
-                return IOError
+            if clean:
+                try:
+                    print('Sanitizing JSON file. ')
+                    clean_json(file_address)
+                    with open(file_address) as ff:
+                        data = json.load(ff)
+                        ff.close()
+                        return data
+                except:
+                    print('cannot load file ' + str(file_address))
+                    return IOError
 
 
-class DatabaseEngine:
+class ETEngine:
     """ Set of methods distributed inside a class instance allowing a user to parse, load, modify, and
-    save a set of .json files streamed from a PowerBlock client. These methods allow for """
+    save a set of .json files streamed from a PowerBlock client. Parsing and modification are called primarily
+    using the cirrus_stream.sh script. The class instance is intended to be used in conjunction with a local file
+    system to store and load data. For non-local data, see 'extract_transform_data_datalake.py'. """
 
     def __init__(self, current_file_exists=False, path_prefix='/home/ubuntu/data/'):
+        """
+        Initializes the  class instance with default values for various attributes.
+
+        Parameters:
+        current_file_exists(bool): A boolean value indicating if a current file already exists.
+        path_prefix(str): The path prefix for the local file system.
+        Returns:
+        None
+        """
         self.file_address = None
         self.client_csv_file_address = {}
         self.client_csv_data = {}
         self.current_file_exists = current_file_exists
         self.path_prefix = path_prefix
         self.client_json_data = None
+        self.daystring = None
         self.updated_df = {}
         self.new_data_flag = False
         self.new_file = False
@@ -67,7 +111,7 @@ class DatabaseEngine:
         self.append_and_merge_data_structures(client=client)
         self.save_local_client_file(client=client)
         if end_of_hour:
-            self.move_hourly_file_to_s3(date_string = [YY, MM, DD, HH])
+            self.move_hourly_file_to_s3(date_string=[YY, MM, DD, HH])
         # Check file date, move to S3 if necessary, log
 
     def find_current_csv_data(self, client, file_address, YY, MM, DD, HH):
@@ -83,11 +127,11 @@ class DatabaseEngine:
         # rv: file_address, client, DD
         self.daystring = '_' + DD
         #pdb.set_trace()
-        if len(glob.glob(self.path_prefix + '*' + client +'*' + self.daystring + '*_log.csv')) > 0:
+        if len(glob.glob(self.path_prefix + '*' + client + '*' + self.daystring + '*_log.csv')) > 0:
             print('Found csv file')
             self.current_file_exists = True
             self.new_file = False
-            for files in glob.glob(self.path_prefix + '*' + client + '*'+ self.daystring + '*_log.csv'):
+            for files in glob.glob(self.path_prefix + '*' + client + '*' + self.daystring + '*_log.csv'):
                 self.client_csv_file_address[client] = files
                 self.client_csv_data[client] = pd.read_csv(files)
                 print(self.client_csv_data[client].shape)
@@ -97,7 +141,7 @@ class DatabaseEngine:
             self.current_file_exists = False
             self.new_file = True
             self.client_csv_file_address[client] = (self.path_prefix + client + '_' +
-                                                YY + '_' + MM + '_' + DD + '_log.csv')
+                                                    YY + '_' + MM + '_' + DD + '_log.csv')
             self.client_csv_data[client] = pd.DataFrame()
             self.current_file_exists = True
         if self.new_file:
@@ -146,7 +190,7 @@ class DatabaseEngine:
             file_name = file_location.split('/')[-1]  # Get last file address.
             s3_address = ('s3://streamingawsbucket/data/' + client + '/' + date_string[0] + '/' +
                           date_string[1] + '/' + date_string[2] + '/' + file_name)
-            os.system('aws s3 cp ' + file_location + ' ' + s3_address)  # use CLI to move file into S3
+            os.system(shlex_quote('aws s3 cp ' + file_location + ' ' + s3_address))  # use CLI to move file into S3
 
 
-DatabaseEngine()
+ETEngine()
