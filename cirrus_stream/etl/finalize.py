@@ -16,9 +16,6 @@ import pandas as pd
 import pdb
 import warnings
 import pyarrow
-
-pd.options.mode.chained_assignment = None  # default='warn'
-warnings.simplefilter(action='ignore', category=FutureWarning)  # disable pandas FutureWarnings
 pd.options.mode.string_storage = "pyarrow"  # use pyarrow as string storage backend to improve speed
 
 
@@ -35,7 +32,7 @@ class DatabaseFormatter:
     """
     Class methods used to import structured data from the Powercon data firehose into multiple types of database files.
     Currently supported databases are simple pandas data structures and DuckDB.
-    To obtain a properly constructed database in pandas, use the 'construct_database_pandas' function.
+    To obtain a properly constructed database in pandas, use the 'construct_structured_database_pandas' function.
     To obtain a properly constructed database in duckdb, use the 'construct_database_duckdb' function.
     To obtain a database in parquet format, use the 'construct_database_parquet' function.
     To obtain a database spanning multiple days for a single client, use the argument
@@ -48,10 +45,12 @@ class DatabaseFormatter:
 
     """
 
-    def __init__(self, data_file):
-
+    def __init__(self, csv_unmodified_data_file):
         self.is_query = False
         self.is_file = False
+        self.parquet_file = None
+        self.duck_file = None
+        self.structured_pandas_file = None
         self.record_type_key_value = {
             "PCON_BOOT_STATUS": 30,  # pcon_common.h               Pcon_Status_t
             "PCON_NODE_SUMMARY": 31,  # pcon_main.h                 Blh_Node_Id_List_t
@@ -65,94 +64,108 @@ class DatabaseFormatter:
             "TWIN_STORAGE_RECORD": 39,  # pcon_twin_transactions.h    Storage_Record_t
             "TEST_MESSAGE": 40  # Traffic_Test_Message_t
         }
-        self.sources_key_value = {
-
-        }
-        self.data_file = data_file
-        self.ex_df = pd.read_csv(self.data_file)
-        self.ex_df = self.ex_df.convert_dtypes(convert_boolean=False,
-                                               convert_floating=False,
-                                               convert_integer=False,
-                                               )
+        self.data_file = csv_unmodified_data_file
+        self.simple_pd_dataframe = pd.read_csv(self.data_file)
+        self.simple_pd_dataframe = self.simple_pd_dataframe.convert_dtypes(convert_boolean=False,
+                                                                           convert_floating=False,
+                                                                           convert_integer=False,
+                                                                           )
         # Individual records possible.
         # Multiple units possible per record (see sources key)
         self.twin_records, self.twin_storage_records, self.solar_production_records = None, None, None
         self.inverter_record, self.step_record, self.control_status, self.rectifier_control = None, None, None, None
-        self.boot_status, self.node_summary, self.busbar_record = None, None, None
-        self.set_up_static_dataframes_for_units()
+        self.boot_status, self.node_summary, self.bus_bar_record = None, None, None
+        self.set_up_static_dataframes_for_physical_units()
+        self.construct_structured_database_pandas()
+        # Now have set up static file for each physical unit (~10 dataframes from single csv file)
+        # This is where we can pass data to remote monitoring, so save to S3 or other location
+        self.construct_database_duckdb()
+        self.construct_database_parquet()
+        # Create custom file-types for different use cases (currently in testing)
 
-    ### We need to divide real numbers by % 100.0
+    def construct_structured_database_pandas(self):
+        pass
+
+    def construct_database_duckdb(self):
+        pass
+
+    def construct_database_parquet(self):
+        pass
+        # Now have set up static file for each physical unit (~10 dataframes from single csv file)
+        # This is where we can pass data to remote monitoring, so save to S3 or other location
+        #
+
     def refresh_database(self):
         # Re-load data
-        self.ex_df = pd.read_csv(self.data_file)
+        self.simple_pd_dataframe = pd.read_csv(self.data_file)
         self.twin_records, self.twin_storage_records, self.solar_production_records = None, None, None
         self.inverter_record, self.step_record, self.control_status, self.rectifier_control = None, None, None, None
-        self.boot_status, self.node_summary, self.busbar_record = None, None, None
-        self.set_up_static_dataframes_for_units()
+        self.boot_status, self.node_summary, self.bus_bar_record = None, None, None
+        self.set_up_static_dataframes_for_physical_units()
 
     def return_record_type_dataframes(self, record_number=int):
-        return self.ex_df.loc[self.ex_df['record_type'] == record_number]
-        # self.sql_style = False
+        return self.simple_pd_dataframe.loc[self.simple_pd_dataframe['record_type'] == record_number]
 
-    def set_up_static_dataframes_for_units(self):
+    def set_up_static_dataframes_for_physical_units(self):
         """
         Function used to parse record ID's necessary for splitting data into proper streams.
         Data is parsed in down-stream functions for dashboarding and analytics.
         Data structures are pandas DataFrames, containing individualized records
         """
-        self.twin_records = self.return_record_type_dataframes(38)
-        time = pd.to_datetime(self.twin_records['epoch_time'], unit='s').to_list()
-        self.twin_records.loc[:, ('timestamp')] = time  # We can pivot each unique record around the timestamp
+        self.twin_records = self.return_record_type_dataframes(self.record_type_key_value['TWIN_OPAL_RECORD'])
+        time = pd.to_datetime(self.twin_records['epoch_time'], unit='s')
+        self.twin_records = pd.concat([self.twin_records, time], axis=1)
         self.twin_records = self.twin_records.dropna(axis=1, how='all')
 
-        self.busbar_record = self.return_record_type_dataframes(self.record_type_key_value['BUSBAR_RECORD'])
-        busbar_time = pd.to_datetime(self.busbar_record['epoch_time'], unit='s').to_list()
-        self.busbar_record.loc[:, ('timestamp')] = busbar_time
-        self.busbar_record = self.busbar_record.dropna(axis=1, how='all')
+        self.bus_bar_record = self.return_record_type_dataframes(self.record_type_key_value['BUSBAR_RECORD'])
+        bus_bar_time = pd.to_datetime(self.bus_bar_record['epoch_time'], unit='s')
+        self.bus_bar_record = pd.concat([self.bus_bar_record, bus_bar_time], axis=1)
+        self.bus_bar_record = self.bus_bar_record.dropna(axis=1, how='all')
 
         self.step_record = self.return_record_type_dataframes(self.record_type_key_value['STEPIN_RECORD'])
-        step_time = pd.to_datetime(self.step_record['epoch_time'], unit='s').to_list()
-        self.step_record.loc[:, ('timestamp')] = step_time
+        step_time = pd.to_datetime(self.step_record['epoch_time'], unit='s')
+        self.step_record = pd.concat([self.step_record, step_time], axis=1)
         self.step_record = self.step_record.dropna(axis=1, how='all')
 
         self.solar_production_records = self.return_record_type_dataframes(
             self.record_type_key_value["PRODUCTION_RECORD"])
-        solar_prod_time = pd.to_datetime(self.solar_production_records['epoch_time'], unit='s').to_list()
-        self.solar_production_records.loc[:, ('timestamp')] = solar_prod_time
+        solar_prod_time = pd.to_datetime(self.solar_production_records['epoch_time'], unit='s')
+        self.solar_production_records = pd.concat([self.solar_production_records, solar_prod_time], axis=1)
         self.solar_production_records = self.solar_production_records.dropna(axis=1, how='all')
 
         self.control_status = self.return_record_type_dataframes(
             self.record_type_key_value['PCON_CONTROL_STATUS'])  # 32
-        control_time = pd.to_datetime(self.control_status['epoch_time'], unit='s').to_list()
-        self.control_status.loc[:, ('timestamp')] = control_time
+        control_time = pd.to_datetime(self.control_status['epoch_time'], unit='s')
+        self.control_status = pd.concat([self.control_status, control_time], axis=1)
         self.control_status = self.control_status.dropna(axis=1, how='all')
 
         self.inverter_record = self.return_record_type_dataframes(self.record_type_key_value['FORCE_RECORD']).dropna(
             axis=1, how='all')
-        inverter_time = pd.to_datetime(self.inverter_record['epoch_time'], unit='s').to_list()
-        self.inverter_record.loc[:, ('timestamp')] = inverter_time
+        inverter_time = pd.to_datetime(self.inverter_record['epoch_time'], unit='s')
+        self.inverter_record = pd.concat([self.inverter_record, inverter_time], axis=1)
         self.inverter_record = self.inverter_record.dropna(axis=1, how='all')
 
         self.rectifier_control = self.return_record_type_dataframes(self.record_type_key_value['EXTEND_RECORD'])
-        rectifier_time = pd.to_datetime(self.rectifier_control['epoch_time'], unit='s').to_list()
-        self.rectifier_control.loc[:, ('timestamp')] = rectifier_time
+        rectifier_time = pd.to_datetime(self.rectifier_control['epoch_time'], unit='s')
+        self.rectifier_control = pd.concat([self.rectifier_control, rectifier_time], axis=1)
         self.rectifier_control = self.rectifier_control.dropna(axis=1, how='all')
 
         self.node_summary = self.return_record_type_dataframes(self.record_type_key_value['PCON_NODE_SUMMARY'])
-        node_time = pd.to_datetime(self.node_summary['epoch_time'], unit='s').to_list()
-        self.node_summary.loc[:, ('timestamp')] = node_time
+        node_time = pd.to_datetime(self.node_summary['epoch_time'], unit='s')
+        self.node_summary = pd.concat([self.node_summary, node_time], axis=1)
         self.node_summary = self.node_summary.dropna(axis=1, how='all')
 
         self.boot_status = self.return_record_type_dataframes(self.record_type_key_value['PCON_BOOT_STATUS'])
-        boot_time = pd.to_datetime(self.boot_status['epoch_time'], unit='s').to_list()
-        self.boot_status.loc[: , ('timestamp')] = boot_time
+        boot_time = pd.to_datetime(self.boot_status['epoch_time'], unit='s')
+        self.boot_status = pd.concat([self.boot_status, boot_time], axis=1)
         self.boot_status = self.boot_status.dropna(axis=1, how='all')
 
         self.twin_storage_records = self.return_record_type_dataframes(
             self.record_type_key_value['TWIN_STORAGE_RECORD'])
-        storage_time = pd.to_datetime(self.twin_storage_records['epoch_time'], unit='s').to_list()
-        self.twin_storage_records.loc[:, ('timestamp')] = storage_time
+        storage_time = pd.to_datetime(self.twin_storage_records['epoch_time'], unit='s')
+        self.twin_storage_records = pd.concat([self.twin_storage_records, storage_time], axis=1)
         self.twin_storage_records = self.twin_storage_records.dropna(axis=1, how='all')
+
 
 if __name__ == "__main__":
     data_file = input("Data file to be monitored")
