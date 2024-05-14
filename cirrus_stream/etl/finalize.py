@@ -31,7 +31,7 @@ def read_csv_file_pandas(file_path) -> pd.DataFrame:
     return pd.read_csv(file_path, engine='pyarrow')
 
 
-class DatabaseQuery:
+class DatabaseFormatter:
     """
     Class methods used to import structured data from the Powercon data firehose into multiple types of database files.
     Currently supported databases are simple pandas data structures and DuckDB.
@@ -156,5 +156,5 @@ class DatabaseQuery:
 
 if __name__ == "__main__":
     data_file = input("Data file to be monitored")
-    DB = DatabaseQuery(data_file)
+    DB = DatabaseFormatter(data_file)
     pdb.set_trace()

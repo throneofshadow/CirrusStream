@@ -110,31 +110,44 @@ class ETEngine:
         self.path_prefix = path_prefix
         # initialize attributes of class method
         self.file_address = None
-        self.client_csv_file_address = {}
-        self.client_csv_data = {}
+        self.client_csv_file_address = None
+        self.client_csv_data = None
+        self.client_parquet_data = None
+        self.client_parquet_data_address = None
+        self.client_pandas_data = None
+        self.client_pandas_data_address = None
         self.client_json_data = None
         self.day_string = None
-        self.updated_df = {}
+        self.updated_df = None
         self.new_data_flag = False
         self.new_file = False
         self.bad_file = False
         self.s3_prefix = 's3://streamingbucketaws/data/'
         # Initialize data read
-        self.find_current_csv_data()
+        self.load_json_file()
+        # Load or create current csv data
+        self.find_or_create_current_csv_data()
+
+    def create_pandas_data_structures(self):
+        pass
+
+    def create_parquet_data_structures(self):
+        pass
 
     def add_or_append_local_client_csv_files(self):
-        self.find_current_csv_data(verbose=False)
-        self.append_and_merge_data_structures()
-        self.save_local_client_file()
-        # Check file date, move to S3 if necessary, log
+        self.append_and_merge_initial_csv_data()  # Append and merge csv files (silver)
+        self.save_local_client_file()  # Save local csv file for transfer to S3
+        self.create_pandas_data_structures()
+        self.create_parquet_data_structures()
 
-    def find_current_csv_data(self, verbose=True):
+    def load_json_file(self):
         try:
             self.client_json_data = open_json_file(self.file_address)  # Returns a s>
         except Exception:  # empty.
             self.client_json_data = []
             print('Cant load json data')
-        # rv: file_address, client, DD
+
+    def find_or_create_current_csv_data(self, verbose=True):
         self.day_string = '_' + self.day
         if len(glob.glob(self.path_prefix + '*' + self.client + '*' + self.day_string + '*_log.csv')) > 0:
             if verbose:
@@ -160,7 +173,7 @@ class ETEngine:
             if verbose:
                 print(self.current_file_exists, self.new_file)
 
-    def append_and_merge_data_structures(self):
+    def append_and_merge_initial_csv_data(self):
         try:
             new_data = pd.DataFrame(self.client_json_data)
             print(new_data.shape)
