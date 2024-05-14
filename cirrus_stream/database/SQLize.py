@@ -1,27 +1,59 @@
+"""
+
+@Author: Brett Nelson, Yousolar Engineering
+
+@version: 1.0
+
+@description: This class is used to parse and construct data structures streamed on AWS from
+the PowerCon firehose to local EC2 or EKS instances. Currently, both reading from local files and accepting
+streamed data are both acceptable methods of interacting with DatabaseQuery.
+
+@notes: Currently supported databases are SQL flavors (through the SQLize class), simple pandas data structures.
+
+@todo: Add support for other databases (SQLize class). Add support for DuckDB. Add firm Tabling.
+
+
+"""
 import pandas as pd
 import pdb
 import warnings
 import pyarrow
+
 pd.options.mode.chained_assignment = None  # default='warn'
-warnings.simplefilter(action='ignore', category=FutureWarning)
-pd.options.mode.string_storage = "pyarrow"
+warnings.simplefilter(action='ignore', category=FutureWarning)  # disable pandas FutureWarnings
+pd.options.mode.string_storage = "pyarrow"  # use pyarrow as string storage backend to improve speed
 
 
-def load_csv_file(file_path):
+def read_csv_file_pandas(file_path) -> pd.DataFrame:
+    """ Function intended to read a csv file using pandas.
+        @type file_path: str
+        @param file_path : The address of the file to be read.
+        @return: pd.DataFrame        @returns: pd.DataFrame
+    """
     return pd.read_csv(file_path, engine='pyarrow')
 
 
 class DatabaseQuery:
     """
-    Class methods used to parse and query data from the PowerCon firehose. Documentation is attached in the
-    readme for determining source identities, record types, and individual record structure.
-    Class methods are necessary for interpreting, structuring, and saving data for use in data analysis.
-    Class methods are necessary for dashboarding. For more documentation on dashboarding, see dashboarding.py
+    Class methods used to import structured data from the Powercon data firehose into multiple types of database files.
+    Currently supported databases are SQL flavors (through the SQLize class), simple pandas data structures, and DuckDB.
+    To obtain a properly constructed database in pandas, use the 'construct_database_pandas' function.
+    To obtain a properly constructed database in POSTGRESQL, use the 'construct_database_Postgresql' function.
+    To obtain a properly constructed database in duckdb, use the 'construct_database_duckdb' function.
+    To obtain a database in parquet format, use the 'construct_database_parquet' function.
+    To obtain a database spanning multiple days for a single client, use the argument
+    'date = ['YYYY-MM-DD', 'YYYY-MM-DD'..]'.
+    Multi-client database support is documented for several use cases.
+
+    @notes: Currently supported databases are SQL flavors (through the SQLize class), simple pandas data structures.
+
+    @todo: Add support for other databases (SQLize class). Add support for DuckDB. Add more proper tables
 
 
     """
 
     def __init__(self, data_file):
+
         self.is_query = False
         self.is_file = False
         self.record_type_key_value = {
