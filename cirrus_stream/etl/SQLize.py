@@ -10,8 +10,6 @@ streamed data are both acceptable methods of interacting with DatabaseQuery.
 
 @notes: Currently supported databases are simple pandas data structures, parquet, and duckdb.
 
-@todo: Add support for DuckDB. Add firm Tabling.
-
 
 """
 import pandas as pd
@@ -46,7 +44,6 @@ class DatabaseQuery:
 
     @notes: Currently supported databases are simple pandas data structures, parquet.
 
-    @todo:  Add support for DuckDB. Add more proper tables
 
 
     """
