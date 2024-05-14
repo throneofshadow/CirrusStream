@@ -1,20 +1,22 @@
 """
-    @author: Brett Nelson, Yousolar Engineering
+    @author: Brett Nelson, YouSolar Engineering
 
     @version: 1.0
 
     @description: This class is used to send raw data files to AWS S3 datalake. Naming convention is given as
-    <client_name>_<YYYY-MM-DD_HH-MM-SS>_log.json. Data is saved in clientname/YYYY/MM/DD/file1.json.
-    Data saved using this class is in JSON format and intended to yield bronze level data.
+    <client_name>_<YYYY-MM-DD_HH-MM-SS>_log.json. Data is saved in clientname/YYYY/MM/DD/filename_dtype_log.filetype
+    for each client and day, as well as hourly data dumps for 'bronze' raw data sources.
+    Unstructured data files are saved first using the send_file_aws function. Data is then structured appropriately
+    into columnar files and sent to AWS S3 using the
 
     @notes: Currently only supported through CirrusStream.sh script.
 
 """
 import pandas as pd
-import os
 import glob
 import subprocess
 import shlex
+from cirrus_stream.etl.extract_transform_data import ETEngine
 
 
 def find_client_file(client_name, working_dir):
@@ -32,7 +34,22 @@ def find_client_file(client_name, working_dir):
     return rf
 
 
-def send_file_aws(local_address_file, s3_bucket_address, data_client, object_name=None):
+def partition_filename(named_file, part_type='/') -> list:
+    """
+    Get the partition name from the file name.
+    :param named_file: The file name to get the partition name from.
+    :type named_file: str
+    :param part_type: The partition type to get the partition name from.
+    :type part_type: str
+    :return: list of partition objects.
+    :rtype: list
+    """
+    partition_name = named_file.split(part_type)[-1]
+    partition_names = partition_name.split('_')
+    return [partition_name, partition_names]
+
+
+def send_file_aws(local_address_file, s3_bucket_address, data_client):
     """
     Sends a file to AWS S3 storage.
 
@@ -42,17 +59,12 @@ def send_file_aws(local_address_file, s3_bucket_address, data_client, object_nam
     :type s3_bucket_address: str
     :param data_client: The data client name.
     :type data_client: str
-    :param object_name: The object name (optional).
-    :type object_name: str
     :return: None
     """
     file_addresses = find_client_file(data_client, local_address_file)
     for file_address in file_addresses:
-        if object_name is None:
-            object_name = os.path.basename(file_address)
         # match up file names by splitting and assigning last file name
-        partition_name = file_address.split('/')[-1]
-        partition_names = partition_name.split('_')
+        [partition_name, partition_names] = partition_filename(file_address, part_type='/')
         #        YYYY = partition_names[1]
         #        MM = partition_names[2]
         #        DD = partition_names[3]
@@ -61,12 +73,26 @@ def send_file_aws(local_address_file, s3_bucket_address, data_client, object_nam
         #        SS = partition_names[6]
         bucket = (s3_bucket_address + partition_names[1] + '/' + partition_names[2] +
                   '/' + partition_names[3] + '/Hour' + partition_names[4] + '/' + partition_name)
+        csv_bucket_address = bucket.split('.json')[0] + 'silver_log.csv'
+        if 13 < int(partition_names[5]) < 17 or 27 < int(partition_names[5]) < 31 or 43 < int(
+                partition_names[5]) < 47 or 56 < int(partition_names[5]) < 60:
+            end_of_hour = True
+        else:
+            end_of_hour = False
+        et_tool.add_or_append_local_client_files(client, file_address, partition_names[1], partition_names[2],
+                                                 partition_names[3], partition_names[4], end_of_hour)
         try:
-            result = subprocess.run(shlex.quote("aws s3 mv " + file_address + " " + bucket))
+            subprocess.run(shlex.quote("aws s3 mv " + file_address + " " + bucket))
+            # Move local json file to S3
+            subprocess.run(shlex.qoute("aws s3 cp" + file_address + " " + csv_bucket_address))
+            # Copy local daily record csv file to S3
+            # Here we can also add some logic to move other file types from ETL to S3, like gold records
+            # subprocess.run(shlex.quote("aws s3 cp " + file_address + " " + parquet_bucket_address))
         except Exception:
             print('ClientError transferring S3 files')
 
 
+et_tool = ETEngine()  # Initiate ETL Engine class methods
 # Base addresses
 local_address = '/home/ubuntu/'
 s3_address = "s3://streamingawsbucket/data/"

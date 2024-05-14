@@ -1,14 +1,22 @@
+"""
+    @author: Brett Nelson, Yousolar Engineering
+
+    @version: 1.0
+
+    @description: This class is used to parse and construct data structures streamed on AWS from
+    the Powercon firehose to local EC2 or EKS instances. Currently, both reading from local files and accepting
+    streamed data are both acceptable methods of interacting with ETLEngine.
+
+    @notes: Currently supported databases are simple pandas data structures, parquet, and duckdb.
+
+
+"""
 import pdb
 import pandas as pd
 import json
 import glob
 import os
 from shlex import quote as shlex_quote
-
-"""
-
-
-"""
 
 
 def test_json(file_address):
@@ -99,7 +107,7 @@ class ETEngine:
         self.current_file_exists = current_file_exists
         self.path_prefix = path_prefix
         self.client_json_data = None
-        self.daystring = None
+        self.day_string = None
         self.updated_df = {}
         self.new_data_flag = False
         self.new_file = False
@@ -125,13 +133,12 @@ class ETEngine:
             self.client_json_data = []
             print('Cant load json data')
         # rv: file_address, client, DD
-        self.daystring = '_' + DD
-        #pdb.set_trace()
-        if len(glob.glob(self.path_prefix + '*' + client + '*' + self.daystring + '*_log.csv')) > 0:
+        self.day_string = '_' + DD
+        if len(glob.glob(self.path_prefix + '*' + client + '*' + self.day_string + '*_log.csv')) > 0:
             print('Found csv file')
             self.current_file_exists = True
             self.new_file = False
-            for files in glob.glob(self.path_prefix + '*' + client + '*' + self.daystring + '*_log.csv'):
+            for files in glob.glob(self.path_prefix + '*' + client + '*' + self.day_string + '*_log.csv'):
                 self.client_csv_file_address[client] = files
                 self.client_csv_data[client] = pd.read_csv(files)
                 print(self.client_csv_data[client].shape)
