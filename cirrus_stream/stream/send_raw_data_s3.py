@@ -1,10 +1,30 @@
+"""
+    @author: Brett Nelson, Yousolar Engineering
+
+    @version: 1.0
+
+    @description: This class is used to send raw data files to AWS S3 datalake. Naming convention is given as
+    <client_name>_<YYYY-MM-DD_HH-MM-SS>_log.json. Data is saved in clientname/YYYY/MM/DD/file1.json.
+    Data saved using this class is in JSON format and intended to yield bronze level data.
+
+    @notes: Currently only supported through CirrusStream.sh script.
+
+"""
 import pandas as pd
 import os
 import glob
 import subprocess
+import shlex
 
 
 def find_client_file(client_name, working_dir):
+    """
+    Find client files based on the client name and working directory.
+
+    :param client_name: The name of the client to search for.
+    :param working_dir: The working directory where the files are located.
+    :return: List of file paths that match the client name.
+    """
     rf = []
     for files in glob.glob(working_dir + '*_log.json'):  # use wildcard glob to filter by client name
         if client_name in files:
@@ -14,7 +34,17 @@ def find_client_file(client_name, working_dir):
 
 def send_file_aws(local_address_file, s3_bucket_address, data_client, object_name=None):
     """
+    Sends a file to AWS S3 storage.
 
+    :param local_address_file: The local address file.
+    :type local_address_file: str
+    :param s3_bucket_address: The S3 bucket address.
+    :type s3_bucket_address: str
+    :param data_client: The data client name.
+    :type data_client: str
+    :param object_name: The object name (optional).
+    :type object_name: str
+    :return: None
     """
     file_addresses = find_client_file(data_client, local_address_file)
     for file_address in file_addresses:
@@ -32,7 +62,7 @@ def send_file_aws(local_address_file, s3_bucket_address, data_client, object_nam
         bucket = (s3_bucket_address + partition_names[1] + '/' + partition_names[2] +
                   '/' + partition_names[3] + '/Hour' + partition_names[4] + '/' + partition_name)
         try:
-            result = subprocess.run("aws s3 mv " + file_address + " " + bucket, shell=True)
+            result = subprocess.run(shlex.quote("aws s3 mv " + file_address + " " + bucket))
         except Exception:
             print('ClientError transferring S3 files')
 
