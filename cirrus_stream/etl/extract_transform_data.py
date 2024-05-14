@@ -17,7 +17,8 @@ import json
 import glob
 import os
 import shlex
-from finalize import DatabaseFormatter as DBF
+from finalize import DatabaseFormatter as dbf
+
 
 def test_json(file_address):
     """ Function intended to test if a json file is valid and able to be parsed using the 'read_json' function.
@@ -132,7 +133,7 @@ class ETEngine:
         self.append_and_merge_initial_csv_data()  # Append and merge csv files (silver)
         self.save_local_client_file()  # Save local csv file for transfer to S3, reading into DBF
         # initialize DBFormatter class
-        DB = DBF(self.client_csv_file_address[self.client])
+        DB = dbf(self.client_csv_file_address[self.client])
         # get file names for file transfer
         self.client_pandas_data_address = DB.construct_structured_database_pandas()
         self.client_parquet_data_address = DB.construct_database_parquet()
