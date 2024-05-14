@@ -49,9 +49,12 @@ def partition_filename(named_file, part_type='/') -> list:
     return [partition_name, partition_names]
 
 
-def send_file_aws(local_address_file, s3_bucket_address, data_client):
+def etl_and_transfer_data(local_address_file, s3_bucket_address, data_client):
     """
-    Sends a file to AWS S3 storage.
+    Sends multiple files to AWS S3 storage. Files are 'bronze' unstructured and unmodified json records,
+    'silver' structured, and 'gold' structured and aggregated records. Specific ETL operations are handled by
+    the ETEngine class. High-level ETL operations are handled by the SQLize class, which is called through
+    ETEngine.
 
     :param local_address_file: The local address file.
     :type local_address_file: str
@@ -65,6 +68,7 @@ def send_file_aws(local_address_file, s3_bucket_address, data_client):
     for file_address in file_addresses:
         # match up file names by splitting and assigning last file name
         [partition_name, partition_names] = partition_filename(file_address, part_type='/')
+        #        Partition names keys:
         #        YYYY = partition_names[1]
         #        MM = partition_names[2]
         #        DD = partition_names[3]
@@ -79,13 +83,12 @@ def send_file_aws(local_address_file, s3_bucket_address, data_client):
             end_of_hour = True
         else:
             end_of_hour = False
+        # Call ETL Engine methods to perform basic ETL operations on raw json files
         et_tool.add_or_append_local_client_files(client, file_address, partition_names[1], partition_names[2],
                                                  partition_names[3], partition_names[4], end_of_hour)
         try:
-            subprocess.run(shlex.quote("aws s3 mv " + file_address + " " + bucket))
-            # Move local json file to S3
-            subprocess.run(shlex.qoute("aws s3 cp" + file_address + " " + csv_bucket_address))
-            # Copy local daily record csv file to S3
+            subprocess.run(shlex.quote("aws s3 mv " + file_address + " " + bucket))  # Move local json file to S3
+            subprocess.run(shlex.qoute("aws s3 cp" + file_address + " " + csv_bucket_address))  # Copy local daily record csv file to S3
             # Here we can also add some logic to move other file types from ETL to S3, like gold records
             # subprocess.run(shlex.quote("aws s3 cp " + file_address + " " + parquet_bucket_address))
         except Exception:
@@ -107,7 +110,7 @@ keys = configuration_file['PAuth']
 for idx, client in enumerate(clients):
     if IP[idx] != '/n' and keys[idx] != '/n' and idx < 1:  # remove idx condition to move beyond labrat
         s3_file_path = s3_address + str(client) + '/'  # Current day folder
-        send_file_aws(local_address, s3_file_path, client)
+        etl_and_transfer_data(local_address, s3_file_path, client)
         # etl into csv format
         # append a local .csv file, send to S3 as silver record
         # perform ETL, save as parquet as gold record
