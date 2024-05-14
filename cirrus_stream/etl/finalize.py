@@ -45,7 +45,7 @@ class DatabaseFormatter:
 
     """
 
-    def __init__(self, csv_unmodified_data_file):
+    def __init__(self, csv_unmodified_data_file_address):
         self.is_query = False
         self.is_file = False
         self.parquet_file = None
@@ -64,7 +64,7 @@ class DatabaseFormatter:
             "TWIN_STORAGE_RECORD": 39,  # pcon_twin_transactions.h    Storage_Record_t
             "TEST_MESSAGE": 40  # Traffic_Test_Message_t
         }
-        self.data_file = csv_unmodified_data_file
+        self.data_file = csv_unmodified_data_file_address
         self.simple_pd_dataframe = pd.read_csv(self.data_file)
         self.simple_pd_dataframe = self.simple_pd_dataframe.convert_dtypes(convert_boolean=False,
                                                                            convert_floating=False,
@@ -76,21 +76,24 @@ class DatabaseFormatter:
         self.inverter_record, self.step_record, self.control_status, self.rectifier_control = None, None, None, None
         self.boot_status, self.node_summary, self.bus_bar_record = None, None, None
         self.set_up_static_dataframes_for_physical_units()
-        self.construct_structured_database_pandas()
+        # self.construct_structured_database_pandas()
         # Now have set up static file for each physical unit (~10 dataframes from single csv file)
         # This is where we can pass data to remote monitoring, so save to S3 or other location
-        self.construct_database_duckdb()
-        self.construct_database_parquet()
+        # self.construct_database_duckdb()
+        # self.construct_database_parquet()
         # Create custom file-types for different use cases (currently in testing)
 
     def construct_structured_database_pandas(self):
-        pass
+        # Create multi-index dataframe or other type for database.
+        return 'file_address'
 
     def construct_database_duckdb(self):
-        pass
+        # Create multi-index dataframe or other type for database suitable for DUCKDB
+        return 'file_address'
 
     def construct_database_parquet(self):
-        pass
+        # Transform multi-index dataframe to parquet binary format
+        return 'file_address'
         # Now have set up static file for each physical unit (~10 dataframes from single csv file)
         # This is where we can pass data to remote monitoring, so save to S3 or other location
         #

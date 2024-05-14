@@ -128,17 +128,15 @@ class ETEngine:
         # Load or create current csv data
         self.find_or_create_current_csv_data()
 
-    def create_pandas_data_structures(self):
-        pass
-
-    def create_parquet_data_structures(self):
-        pass
-
     def add_or_append_local_client_csv_files(self):
         self.append_and_merge_initial_csv_data()  # Append and merge csv files (silver)
         self.save_local_client_file()  # Save local csv file for transfer to S3, reading into DBF
         # initialize DBFormatter class
-        DB = DBF()
+        DB = DBF(self.client_csv_file_address[self.client])
+        # get file names for file transfer
+        self.client_pandas_data_address = DB.construct_structured_database_pandas()
+        self.client_parquet_data_address = DB.construct_database_parquet()
+
         # Data objects from DBF: self.twin_records, self.twin_storage_records, self.solar_production_records
         # self.inverter_record, self.step_record, self.control_status, self.rectifier_control
         # self.boot_status, self.node_summary, self.bus_bar_record
