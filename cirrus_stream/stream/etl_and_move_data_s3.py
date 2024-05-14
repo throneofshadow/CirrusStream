@@ -77,14 +77,14 @@ def etl_and_transfer_data(local_address_file, s3_bucket_address, data_client):
         #        SS = partition_names[6]
         bucket = (s3_bucket_address + partition_names[1] + '/' + partition_names[2] +
                   '/' + partition_names[3] + '/Hour' + partition_names[4] + '/' + partition_name)
-        csv_bucket_address = bucket.split('.json')[0] + 'silver_log.csv'
+        csv_bucket_address = bucket.split('_log.json')[0] + '_silver_log.csv'  # Create new filename for csv
         if 13 < int(partition_names[5]) < 17 or 27 < int(partition_names[5]) < 31 or 43 < int(
                 partition_names[5]) < 47 or 56 < int(partition_names[5]) < 60:
             end_of_hour = True
         else:
             end_of_hour = False
         # Call ETL Engine methods to perform basic ETL operations on raw json files
-        et_tool.add_or_append_local_client_files(client, file_address, partition_names[1], partition_names[2],
+        et_tool.add_or_append_local_client_csv_files(client, file_address, partition_names[1], partition_names[2],
                                                  partition_names[3], partition_names[4], end_of_hour)
         try:
             subprocess.run(shlex.quote("aws s3 mv " + file_address + " " + bucket))  # Move local json file to S3

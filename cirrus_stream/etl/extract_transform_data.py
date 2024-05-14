@@ -114,7 +114,7 @@ class ETEngine:
         self.bad_file = False
         self.s3_prefix = 's3://streamingbucketaws/data/'
 
-    def add_or_append_local_client_files(self, client, file_address, YY, MM, DD, HH, end_of_hour=False):
+    def add_or_append_local_client_csv_files(self, client, file_address, YY, MM, DD, HH, end_of_hour=False):
         self.find_current_csv_data(client, file_address, YY, MM, DD, HH)
         self.append_and_merge_data_structures(client=client)
         self.save_local_client_file(client=client)
