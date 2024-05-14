@@ -8,9 +8,9 @@
 the PowerCon firehose to local EC2 or EKS instances. Currently, both reading from local files and accepting
 streamed data are both acceptable methods of interacting with DatabaseQuery.
 
-@notes: Currently supported databases are SQL flavors (through the SQLize class), simple pandas data structures.
+@notes: Currently supported databases are simple pandas data structures, parquet, and duckdb.
 
-@todo: Add support for other databases (SQLize class). Add support for DuckDB. Add firm Tabling.
+@todo: Add support for DuckDB. Add firm Tabling.
 
 
 """
@@ -36,18 +36,17 @@ def read_csv_file_pandas(file_path) -> pd.DataFrame:
 class DatabaseQuery:
     """
     Class methods used to import structured data from the Powercon data firehose into multiple types of database files.
-    Currently supported databases are SQL flavors (through the SQLize class), simple pandas data structures, and DuckDB.
+    Currently supported databases are simple pandas data structures and DuckDB.
     To obtain a properly constructed database in pandas, use the 'construct_database_pandas' function.
-    To obtain a properly constructed database in POSTGRESQL, use the 'construct_database_Postgresql' function.
     To obtain a properly constructed database in duckdb, use the 'construct_database_duckdb' function.
     To obtain a database in parquet format, use the 'construct_database_parquet' function.
     To obtain a database spanning multiple days for a single client, use the argument
     'date = ['YYYY-MM-DD', 'YYYY-MM-DD'..]'.
     Multi-client database support is documented for several use cases.
 
-    @notes: Currently supported databases are SQL flavors (through the SQLize class), simple pandas data structures.
+    @notes: Currently supported databases are simple pandas data structures, parquet.
 
-    @todo: Add support for other databases (SQLize class). Add support for DuckDB. Add more proper tables
+    @todo:  Add support for DuckDB. Add more proper tables
 
 
     """
