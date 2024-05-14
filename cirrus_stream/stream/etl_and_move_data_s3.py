@@ -80,22 +80,24 @@ def etl_and_transfer_data(local_address_file, s3_bucket_address, data_client):
         csv_bucket_address = bucket.split('_log.json')[0] + '_silver_log.csv'  # Create new filename for csv
         if 13 < int(partition_names[5]) < 17 or 27 < int(partition_names[5]) < 31 or 43 < int(
                 partition_names[5]) < 47 or 56 < int(partition_names[5]) < 60:
-            end_of_hour = True
+            move_data_files = True
         else:
-            end_of_hour = False
+            move_data_files = False
         # Call ETL Engine methods to perform basic ETL operations on raw json files
-        et_tool.add_or_append_local_client_csv_files(client, file_address, partition_names[1], partition_names[2],
-                                                 partition_names[3], partition_names[4], end_of_hour)
+        et_tool = ETEngine(client, file_address, partition_names[1], partition_names[2],
+                           partition_names[3], partition_names[4])  # Initiate ETL Engine class methods
+        # Move identification to initial ETL call eg (client, file_address, ...
+        et_tool.add_or_append_local_client_csv_files()
         try:
             subprocess.run(shlex.quote("aws s3 mv " + file_address + " " + bucket))  # Move local json file to S3
-            subprocess.run(shlex.qoute("aws s3 cp" + file_address + " " + csv_bucket_address))  # Copy local daily record csv file to S3
-            # Here we can also add some logic to move other file types from ETL to S3, like gold records
-            # subprocess.run(shlex.quote("aws s3 cp " + file_address + " " + parquet_bucket_address))
+            if move_data_files:
+                subprocess.run(shlex.qoute("aws s3 cp" + file_address + " " + csv_bucket_address))  # Copy local daily record csv file to S3
+                # Here we can also add some logic to move other file types from ETL to S3, like gold records
+                # subprocess.run(shlex.quote("aws s3 cp " + file_address + " " + parquet_bucket_address))
         except Exception:
             print('ClientError transferring S3 files')
 
 
-et_tool = ETEngine()  # Initiate ETL Engine class methods
 # Base addresses
 local_address = '/home/ubuntu/'
 s3_address = "s3://streamingawsbucket/data/"
