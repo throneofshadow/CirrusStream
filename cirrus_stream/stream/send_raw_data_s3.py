@@ -1,45 +1,40 @@
 import pandas as pd
 import os
-import pdb
-from datetime import datetime, timezone
 import glob
-from botocore.exceptions import ClientError
-import boto3
 import subprocess
+
 
 def find_client_file(client_name, working_dir):
     rf = []
-    for files in glob.glob(working_dir+'*_log.json'): # use wildcard glob to filter by client name
+    for files in glob.glob(working_dir + '*_log.json'):  # use wildcard glob to filter by client name
         if client_name in files:
             rf.append(files)
     return rf
 
 
-def send_file_aws(local_address, s3_address, client, object_name=None):
-    #if os.environ.get('LC_CTYPE', '') == 'UTF-8':
-    #    os.environ['LC_CTYPE'] = 'en_US.UTF-8'
-    #driver = create_clidriver()  # Creates staging driver for terminal CLI
-    #s3_client = boto3.client('s3')
-    file_addresses = find_client_file(client, local_address)
+def send_file_aws(local_address_file, s3_bucket_address, data_client, object_name=None):
+    """
+
+    """
+    file_addresses = find_client_file(data_client, local_address_file)
     for file_address in file_addresses:
         if object_name is None:
-           object_name = os.path.basename(file_address)
+            object_name = os.path.basename(file_address)
         # match up file names by splitting and assigning last file name
         partition_name = file_address.split('/')[-1]
         partition_names = partition_name.split('_')
-#        YYYY = partition_names[1]
-#        MM = partition_names[2]
-#        DD = partition_names[3]
-#        HH = partition_names[4]
-        #MM = partition_names[5]
-        #SS = partition_names[6]
-        bucket = s3_address + partition_names[1] + '/' + partition_names[2] + '/' + partition_names[3] + '/Hour' + partition_names[4] + '/' + partition_name
-#        pdb.set_trace()
+        #        YYYY = partition_names[1]
+        #        MM = partition_names[2]
+        #        DD = partition_names[3]
+        #        HH = partition_names[4]
+        #        MM = partition_names[5]
+        #        SS = partition_names[6]
+        bucket = (s3_bucket_address + partition_names[1] + '/' + partition_names[2] +
+                  '/' + partition_names[3] + '/Hour' + partition_names[4] + '/' + partition_name)
         try:
-            result = subprocess.run("aws s3 mv " + file_address + " " +  bucket, shell=True)
-            #response = s3_client.upload_file(file_address, s3_address, Body=file_address)
-        except ClientError as e:
-            pdb.set_trace()
+            result = subprocess.run("aws s3 mv " + file_address + " " + bucket, shell=True)
+        except Exception:
+            print('ClientError transferring S3 files')
 
 
 # Base addresses
@@ -57,4 +52,6 @@ for idx, client in enumerate(clients):
     if IP[idx] != '/n' and keys[idx] != '/n' and idx < 1:  # remove idx condition to move beyond labrat
         s3_file_path = s3_address + str(client) + '/'  # Current day folder
         send_file_aws(local_address, s3_file_path, client)
-
+        # etl into csv format
+        # append a local .csv file, send to S3 as silver record
+        # perform ETL, save as parquet as gold record
