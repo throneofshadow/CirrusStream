@@ -76,12 +76,11 @@ class DatabaseFormatter:
         self.inverter_record, self.step_record, self.control_status, self.rectifier_control = None, None, None, None
         self.boot_status, self.node_summary, self.bus_bar_record = None, None, None
         self.set_up_static_dataframes_for_physical_units()
-        # self.construct_structured_database_pandas()
+        self.construct_structured_database_pandas()
         # Now have set up static file for each physical unit (~10 dataframes from single csv file)
         # This is where we can pass data to remote monitoring, so save to S3 or other location
-        # self.construct_database_duckdb()
-        # self.construct_database_parquet()
-        # Create custom file-types for different use cases (currently in testing)
+        self.construct_database_duckdb()
+        self.construct_database_parquet()
 
     def construct_structured_database_pandas(self):
         # Create multi-index dataframe or other type for database.
@@ -171,6 +170,7 @@ class DatabaseFormatter:
 
 
 if __name__ == "__main__":
-    data_file = input("Data file to be monitored")
+    data_file = 'C:/Users/YouSolar Office/PycharmProjects/CirrusStream/data/app_test_data.csv'
+    #data_file = input("Data file to be monitored")
     DB = DatabaseFormatter(data_file)
     pdb.set_trace()

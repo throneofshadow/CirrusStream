@@ -16,7 +16,7 @@ import pandas as pd
 import glob
 import subprocess
 import shlex
-from cirrus_stream.etl.extract_transform_data import ETEngine
+from cirrus_stream.etl.extract_transform_json_data import ETEngine
 
 
 def find_client_file(client_name, working_dir):

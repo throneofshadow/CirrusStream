@@ -17,7 +17,7 @@ import json
 import glob
 import os
 import shlex
-from finalize import DatabaseFormatter as dbf
+from transform_csv_data_into_db import DatabaseFormatter as dbf
 
 
 def test_json(file_address):
