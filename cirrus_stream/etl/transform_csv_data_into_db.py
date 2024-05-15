@@ -31,17 +31,17 @@ def read_csv_file_pandas(file_path) -> pd.DataFrame:
 class DatabaseFormatter:
     """
     Class methods used to import structured data from the Powercon data firehose into multiple types of database files.
-    Currently supported databases are simple pandas data structures and DuckDB.
-    To obtain a properly constructed database in pandas, use the 'construct_structured_database_pandas' function.
-    To obtain a properly constructed database in duckdb, use the 'construct_database_duckdb' function.
-    To obtain a database in parquet format, use the 'construct_database_parquet' function.
-    To obtain a database spanning multiple days for a single client, use the argument
-    'date = ['YYYY-MM-DD', 'YYYY-MM-DD'..]'.
+    A user provides the file address of a csv file containing row-structured data from the Powercon firehose.
+    The class provides methods to convert the data into different types of database files, data types,
+    and unit-specific dataframes.
+    Record-specific data types are defined in the 'record_type_key_value' dictionary.
+    Record specific dataframes are created using the 'set_up_static_dataframe' function.
+    Pyarrow is used to read, write, and serialize data types, including string-type.
+    Currently supported simple output database files are simple pandas data structures, SQL-style arrow files, and duckdb.
     Multi-client database support is documented for several use cases.
 
-    @notes: Currently supported databases are simple pandas data structures, parquet.
-
-
+    @notes: Currently supported databases are simple pandas dataframes into csv files. For more complex queries, please
+    use the CirrusAnalytics platform.
 
     """
 
@@ -76,26 +76,6 @@ class DatabaseFormatter:
         self.inverter_record, self.step_record, self.control_status, self.rectifier_control = None, None, None, None
         self.boot_status, self.node_summary, self.bus_bar_record = None, None, None
         self.set_up_static_dataframes_for_physical_units()
-        self.construct_structured_database_pandas()
-        # Now have set up static file for each physical unit (~10 dataframes from single csv file)
-        # This is where we can pass data to remote monitoring, so save to S3 or other location
-        self.construct_database_duckdb()
-        self.construct_database_parquet()
-
-    def construct_structured_database_pandas(self):
-        # Create multi-index dataframe or other type for database.
-        return 'file_address'
-
-    def construct_database_duckdb(self):
-        # Create multi-index dataframe or other type for database suitable for DUCKDB
-        return 'file_address'
-
-    def construct_database_parquet(self):
-        # Transform multi-index dataframe to parquet binary format
-        return 'file_address'
-        # Now have set up static file for each physical unit (~10 dataframes from single csv file)
-        # This is where we can pass data to remote monitoring, so save to S3 or other location
-        #
 
     def refresh_database(self):
         # Re-load data
@@ -116,56 +96,61 @@ class DatabaseFormatter:
         """
         self.twin_records = self.return_record_type_dataframes(self.record_type_key_value['TWIN_OPAL_RECORD'])
         time = pd.to_datetime(self.twin_records['epoch_time'], unit='s')
-        self.twin_records = pd.concat([self.twin_records, time], axis=1)
+        self.twin_records = pd.concat([self.twin_records, time], axis=1).reset_index(drop=True)
         self.twin_records = self.twin_records.dropna(axis=1, how='all')
 
         self.bus_bar_record = self.return_record_type_dataframes(self.record_type_key_value['BUSBAR_RECORD'])
         bus_bar_time = pd.to_datetime(self.bus_bar_record['epoch_time'], unit='s')
-        self.bus_bar_record = pd.concat([self.bus_bar_record, bus_bar_time], axis=1)
+        self.bus_bar_record = pd.concat([self.bus_bar_record, bus_bar_time], axis=1).reset_index(drop=True)
         self.bus_bar_record = self.bus_bar_record.dropna(axis=1, how='all')
 
         self.step_record = self.return_record_type_dataframes(self.record_type_key_value['STEPIN_RECORD'])
         step_time = pd.to_datetime(self.step_record['epoch_time'], unit='s')
-        self.step_record = pd.concat([self.step_record, step_time], axis=1)
+        self.step_record = pd.concat([self.step_record, step_time], axis=1).reset_index(drop=True)
         self.step_record = self.step_record.dropna(axis=1, how='all')
 
         self.solar_production_records = self.return_record_type_dataframes(
             self.record_type_key_value["PRODUCTION_RECORD"])
         solar_prod_time = pd.to_datetime(self.solar_production_records['epoch_time'], unit='s')
-        self.solar_production_records = pd.concat([self.solar_production_records, solar_prod_time], axis=1)
+        self.solar_production_records = pd.concat([self.solar_production_records, solar_prod_time],
+                                                  axis=1).reset_index(drop=True)
         self.solar_production_records = self.solar_production_records.dropna(axis=1, how='all')
 
         self.control_status = self.return_record_type_dataframes(
             self.record_type_key_value['PCON_CONTROL_STATUS'])  # 32
         control_time = pd.to_datetime(self.control_status['epoch_time'], unit='s')
-        self.control_status = pd.concat([self.control_status, control_time], axis=1)
+        self.control_status = pd.concat([self.control_status, control_time], axis=1).reset_index(drop=True)
         self.control_status = self.control_status.dropna(axis=1, how='all')
 
         self.inverter_record = self.return_record_type_dataframes(self.record_type_key_value['FORCE_RECORD']).dropna(
             axis=1, how='all')
         inverter_time = pd.to_datetime(self.inverter_record['epoch_time'], unit='s')
-        self.inverter_record = pd.concat([self.inverter_record, inverter_time], axis=1)
+        self.inverter_record = pd.concat([self.inverter_record, inverter_time], axis=1).reset_index(drop=True)
         self.inverter_record = self.inverter_record.dropna(axis=1, how='all')
 
         self.rectifier_control = self.return_record_type_dataframes(self.record_type_key_value['EXTEND_RECORD'])
         rectifier_time = pd.to_datetime(self.rectifier_control['epoch_time'], unit='s')
-        self.rectifier_control = pd.concat([self.rectifier_control, rectifier_time], axis=1)
+        self.rectifier_control = pd.concat([self.rectifier_control, rectifier_time],
+                                           axis=1).reset_index(drop=True)
         self.rectifier_control = self.rectifier_control.dropna(axis=1, how='all')
 
         self.node_summary = self.return_record_type_dataframes(self.record_type_key_value['PCON_NODE_SUMMARY'])
         node_time = pd.to_datetime(self.node_summary['epoch_time'], unit='s')
-        self.node_summary = pd.concat([self.node_summary, node_time], axis=1)
+        self.node_summary = pd.concat([self.node_summary, node_time],
+                                      axis=1).reset_index(drop=True)
         self.node_summary = self.node_summary.dropna(axis=1, how='all')
 
         self.boot_status = self.return_record_type_dataframes(self.record_type_key_value['PCON_BOOT_STATUS'])
         boot_time = pd.to_datetime(self.boot_status['epoch_time'], unit='s')
-        self.boot_status = pd.concat([self.boot_status, boot_time], axis=1)
+        self.boot_status = pd.concat([self.boot_status, boot_time],
+                                     axis=1).reset_index(drop=True)
         self.boot_status = self.boot_status.dropna(axis=1, how='all')
 
         self.twin_storage_records = self.return_record_type_dataframes(
             self.record_type_key_value['TWIN_STORAGE_RECORD'])
         storage_time = pd.to_datetime(self.twin_storage_records['epoch_time'], unit='s')
-        self.twin_storage_records = pd.concat([self.twin_storage_records, storage_time], axis=1)
+        self.twin_storage_records = pd.concat([self.twin_storage_records, storage_time],
+                                              axis=1).reset_index(drop=True)
         self.twin_storage_records = self.twin_storage_records.dropna(axis=1, how='all')
 
 

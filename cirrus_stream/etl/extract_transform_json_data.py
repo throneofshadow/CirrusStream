@@ -113,14 +113,11 @@ class ETEngine:
         self.file_address = None
         self.client_csv_file_address = None
         self.client_csv_data = None
-        self.client_parquet_data = None
-        self.client_parquet_data_address = None
-        self.client_pandas_data = None
-        self.client_pandas_data_address = None
         self.client_json_data = None
         self.day_string = None
         self.updated_df = None
         self.new_data_flag = False
+        self.DB_connection = None
         self.new_file = False
         self.bad_file = False
         self.s3_prefix = 's3://streamingbucketaws/data/'
@@ -132,16 +129,8 @@ class ETEngine:
     def add_or_append_local_client_csv_files(self):
         self.append_and_merge_initial_csv_data()  # Append and merge csv files (silver)
         self.save_local_client_file()  # Save local csv file for transfer to S3, reading into DBF
-        # initialize DBFormatter class
-        DB = dbf(self.client_csv_file_address[self.client])
-        # get file names for file transfer
-        self.client_pandas_data_address = DB.construct_structured_database_pandas()
-        self.client_parquet_data_address = DB.construct_database_parquet()
-
-        # Data objects from DBF: self.twin_records, self.twin_storage_records, self.solar_production_records
-        # self.inverter_record, self.step_record, self.control_status, self.rectifier_control
-        # self.boot_status, self.node_summary, self.bus_bar_record
-        # self.parquet_file, self.duck_file, self.structured_pandas_file
+        # initialize DBFormatter class, un-necessary if using DBF for formatting and interaction with data
+        self.DB_connection = dbf(self.client_csv_file_address[self.client])
 
     def load_json_file(self):
         try:
@@ -182,7 +171,7 @@ class ETEngine:
             print(new_data.shape)
             print('shape of incoming data')
             self.new_data_flag = True
-        except:
+        except Exception:
             if self.new_file is True:
                 print('no existing file found, bad data for client. breaking loop')
                 self.bad_file = True
