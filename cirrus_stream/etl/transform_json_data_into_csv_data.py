@@ -93,7 +93,7 @@ class ETEngine:
     using the cirrus_stream.sh script. The class instance is intended to be used in conjunction with a local file
     system to store and load data. For non-local data, see 'extract_transform_data_datalake.py'. """
 
-    def __init__(self, client, file_address, YY, MM, DD, current_file_exists=False, path_prefix='/home/ubuntu/data/'):
+    def __init__(self, client, file_address, YY, MM, DD, current_file_exists=False, path_prefix='/home/ubuntu/data/') -> None:
         """
         Initializes the  class instance with default values for various attributes.
 
@@ -127,20 +127,40 @@ class ETEngine:
         # Load or create current csv data
         self.find_or_create_current_csv_data()
 
-    def add_or_append_local_client_csv_files(self):
+    def add_or_append_local_client_csv_files(self) -> None:
+        """
+        Appends and merges initial CSV data, saves a local CSV file for transfer to S3, and initializes the DBFormatter class if using DBF for formatting and interacting with data.
+        """
         self.append_and_merge_initial_csv_data()  # Append and merge csv files (silver)
         self.save_local_client_file()  # Save local csv file for transfer to S3, reading into DBF
         # initialize DBFormatter class, un-necessary if using DBF for formatting and interaction with data
         self.DB_connection = dbf(self.client_csv_file_address[self.client])
 
-    def load_json_file(self):
+    def load_json_file(self) -> None:
+        """
+        Loads a JSON file for the client instance.
+
+        This function attempts to load a JSON file specified by self.file_address
+        and assigns it to self.client_json_data using the open_json_file function.
+        If successful, it assigns the loaded JSON data to self.client_json_data.
+        If an exception occurs during the loading process, an empty list is generated.
+        """
         try:
             self.client_json_data = open_json_file(self.file_address)  # Returns a s>
         except Exception:  # empty.
             self.client_json_data = []
             print('Cant load json data')
 
-    def find_or_create_current_csv_data(self, verbose=True):
+    def find_or_create_current_csv_data(self, verbose=True) -> None:
+        """
+        Find or create the current CSV data for the client instance.
+
+        Parameters:
+            verbose (bool): A flag indicating whether to print verbose output or not. Default is True.
+
+        Returns:
+            None
+        """
         self.day_string = '_' + self.day
         if len(glob.glob(self.path_prefix + '*' + self.client + '*' + self.day_string + '*_silver_log.csv')) > 0:
             if verbose:
@@ -166,7 +186,20 @@ class ETEngine:
             if verbose:
                 print(self.current_file_exists, self.new_file)
 
-    def append_and_merge_initial_csv_data(self):
+    def append_and_merge_initial_csv_data(self) -> None:
+        """
+        A function to append and merge the initial CSV data for the client instance.
+
+        This function tries to create a DataFrame from the client's JSON data and sets a flag if successful.
+        If an exception occurs, it handles the case where no existing file is found.
+        It then either loads the current data and appends the new data or generates a new DataFrame object if no current data exists.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        """
         try:
             new_data = pd.DataFrame(self.client_json_data)
             print(new_data.shape)
@@ -194,12 +227,30 @@ class ETEngine:
             print('no file')  # Generate new dataframe object for concat event
         #        pdb.set_trace()
 
-    def save_local_client_file(self):
+    def save_local_client_file(self) -> None:
+        """
+        Save the local client file if new data is available.
+
+        Parameters:
+            self: The class instance.
+
+        Returns:
+            None
+        """
         if not self.new_data_flag:
             print('bad file')
         else:
             self.updated_df[self.client].to_csv(self.client_csv_file_address[self.client], index=False)
 
-    def save_all_files_on_exit(self):
+    def save_all_files_on_exit(self) -> None:
+        """
+        Save all files on exit.
+
+        Parameters:
+            self: The class instance.
+
+        Returns:
+            None
+        """
         for client, file_locations in self.client_csv_file_address.items():
             self.updated_df[client].to_csv(file_locations, index=False)  # Save over previous DF with concat version
