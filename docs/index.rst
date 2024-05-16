@@ -10,17 +10,10 @@ of raw json data and a 'silver' record which has been standardized.
 -------------------------------------------
 
 .. toctree::
-   :maxdepth: 12
+   :maxdepth: 2
    :caption: Contents:
 
-   overview
-   install
-   support
-   cirrus_stream
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   cirrus_stream/overview
+   cirrus_stream/install
+   cirrus_stream/support
+   cirrus_stream/cirrus_stream

@@ -23,7 +23,7 @@ sys.path.append(etl_root)
 
 # Function to append system path with all info necessary to populate docstrings
 
-for x in os.walk('cirrus_stream'):
+for x in os.walk('source/cirrus_stream'):
     sys.path.insert(0, x[0])
 
 # -- Project information -----------------------------------------------------
