@@ -18,6 +18,7 @@ import glob
 import os
 import shlex
 from transform_csv_data_into_db import DatabaseFormatter as dbf
+pd.options.mode.string_storage = "pyarrow"  # use pyarrow as string storage backend to improve speed
 
 
 def test_json(file_address):
@@ -141,12 +142,12 @@ class ETEngine:
 
     def find_or_create_current_csv_data(self, verbose=True):
         self.day_string = '_' + self.day
-        if len(glob.glob(self.path_prefix + '*' + self.client + '*' + self.day_string + '*_log.csv')) > 0:
+        if len(glob.glob(self.path_prefix + '*' + self.client + '*' + self.day_string + '*_silver_log.csv')) > 0:
             if verbose:
                 print('Found csv file')
             self.current_file_exists = True
             self.new_file = False
-            for files in glob.glob(self.path_prefix + '*' + self.client + '*' + self.day_string + '*_log.csv'):
+            for files in glob.glob(self.path_prefix + '*' + self.client + '*' + self.day_string + '*_silver_log.csv'):
                 self.client_csv_file_address[self.client] = files
                 self.client_csv_data[self.client] = pd.read_csv(files)
                 if verbose:
@@ -158,7 +159,7 @@ class ETEngine:
             self.current_file_exists = False
             self.new_file = True
             self.client_csv_file_address[self.client] = (self.path_prefix + self.client + '_' +
-                                                         self.year + '_' + self.month + '_' + self.day + '_log.csv')
+                                                         self.year + '_' + self.month + '_' + self.day + '_silver_log.csv')
             self.client_csv_data[self.client] = pd.DataFrame()
             self.current_file_exists = True
         if self.new_file:
