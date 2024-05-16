@@ -6,7 +6,10 @@
 
 @description: This class is used to parse and construct data structures streamed on AWS from
 the PowerCon firehose to local EC2 or EKS instances. Currently, both reading from local files and accepting
-streamed data are both acceptable methods of interacting with DatabaseQuery.
+streamed data are both acceptable methods of interacting with DatabaseFormatter.
+DatabaseFormatter is used to quickly scope different variables without having to load into traditional database options.
+This particular class is not intended for production environments and is only
+intended for testing and engineering purposes.
 
 @notes: Currently supported databases are simple pandas data structures, parquet, and duckdb.
 
@@ -77,7 +80,10 @@ class DatabaseFormatter:
         self.boot_status, self.node_summary, self.bus_bar_record = None, None, None
         self.set_up_static_dataframes_for_physical_units()
 
-    def refresh_database(self):
+    def refresh_database(self) -> None:
+        """
+        Re-load data
+        """
         # Re-load data
         self.simple_pd_dataframe = pd.read_csv(self.data_file)
         self.twin_records, self.twin_storage_records, self.solar_production_records = None, None, None
@@ -85,14 +91,21 @@ class DatabaseFormatter:
         self.boot_status, self.node_summary, self.bus_bar_record = None, None, None
         self.set_up_static_dataframes_for_physical_units()
 
-    def return_record_type_dataframes(self, record_number=int):
+    def return_record_type_dataframes(self, record_number=int) -> pd.DataFrame:
+        """
+        Returns dataframes for a specific record type based on the record number provided.
+
+        :param record_number: The record number to filter the dataframes.
+        :type record_number: int
+        :return: DataFrame
+        """
         return self.simple_pd_dataframe.loc[self.simple_pd_dataframe['record_type'] == record_number]
 
-    def set_up_static_dataframes_for_physical_units(self):
+    def set_up_static_dataframes_for_physical_units(self) -> None:
         """
-        Function used to parse record ID's necessary for splitting data into proper streams.
-        Data is parsed in down-stream functions for dashboarding and analytics.
-        Data structures are pandas DataFrames, containing individualized records
+        Function used to set up static dataframes for physical units by parsing record IDs.
+        Data is retrieved based on record type key values and stored in pandas DataFrames.
+        Each DataFrame contains specific records related to physical units like twin, bus bar, step, solar production, control status, inverter, rectifier control, node summary, boot status, and twin storage records.
         """
         self.twin_records = self.return_record_type_dataframes(self.record_type_key_value['TWIN_OPAL_RECORD'])
         time = pd.to_datetime(self.twin_records['epoch_time'], unit='s')

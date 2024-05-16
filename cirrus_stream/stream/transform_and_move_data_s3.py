@@ -19,7 +19,7 @@ import shlex
 from cirrus_stream.etl.transform_json_data_into_csv_data import ETEngine
 
 
-def find_client_file(client_name, working_dir):
+def find_client_file(client_name, working_dir) -> list:
     """
     Find client files based on the client name and working directory.
 
@@ -49,12 +49,35 @@ def partition_filename(named_file, part_type='/') -> list:
     return [partition_name, partition_names]
 
 
-def etl_and_transfer_data(local_address_file, s3_bucket_address, data_client):
+def end_of_hour_calculator(minutes: str) -> bool:
+    """
+    Determine if the given minutes indicate the end of an hour.
+
+    :param minutes: The minutes part of the timestamp to check.
+    :type minutes: str
+    :return: True if the minutes represent the end of an hour, False otherwise.
+    :rtype: bool
+    """
+    if 13 < int(minutes[5]) < 17 or 27 < int(minutes[5]) < 31 or 43 < int(
+            minutes[5]) < 47 or 56 < int(minutes[5]) < 60:
+        return True
+    else:
+        return False
+
+
+def etl_and_transfer_data(local_address_file, s3_bucket_address, data_client) -> None:
     """
     Sends multiple files to AWS S3 storage. Files are 'bronze' unstructured and unmodified json records,
     'silver' structured, and 'gold' structured and aggregated records. Specific ETL operations are handled by
     the ETEngine class. High-level ETL operations are handled by the SQLize class, which is called through
     ETEngine.
+        Partition names keys:
+        YYYY = partition_names[1]
+        MM = partition_names[2]
+        DD = partition_names[3]
+        HH = partition_names[4]
+        MM = partition_names[5]
+        SS = partition_names[6]
 
     :param local_address_file: The local address file.
     :type local_address_file: str
@@ -68,21 +91,14 @@ def etl_and_transfer_data(local_address_file, s3_bucket_address, data_client):
     for file_address in file_addresses:
         # match up file names by splitting and assigning last file name
         [partition_name, partition_names] = partition_filename(file_address, part_type='/')
-        #        Partition names keys:
-        #        YYYY = partition_names[1]
-        #        MM = partition_names[2]
-        #        DD = partition_names[3]
-        #        HH = partition_names[4]
-        #        MM = partition_names[5]
-        #        SS = partition_names[6]
+        csv_partition_name = (data_client + '_' + partition_names[1] + '_' + partition_names[2] + '_'
+                              + partition_names[3] + '_' + '_silver_log.csv')
         bucket = (s3_bucket_address + partition_names[1] + '/' + partition_names[2] +
                   '/' + partition_names[3] + '/Hour' + partition_names[4] + '/' + partition_name)
-        csv_bucket_address = bucket.split('_log.json')[0] + '_silver_log.csv'  # Create new filename for csv
-        if 13 < int(partition_names[5]) < 17 or 27 < int(partition_names[5]) < 31 or 43 < int(
-                partition_names[5]) < 47 or 56 < int(partition_names[5]) < 60:
-            move_data_files = True
-        else:
-            move_data_files = False
+        csv_bucket_address = (s3_bucket_address + partition_names[1] + '/' + partition_names[2] +
+                              '/' + partition_names[3] + '/' + csv_partition_name)  # Create new filename for csv
+        end_of_hour = True
+        #  end_of_hour = end_of_hour_calculator(partition_names[5])
         # Call ETL Engine methods to perform basic ETL operations on raw json files
         et_tool = ETEngine(client, file_address, partition_names[1], partition_names[2],
                            partition_names[3], partition_names[4])  # Initiate ETL Engine class methods
@@ -90,8 +106,9 @@ def etl_and_transfer_data(local_address_file, s3_bucket_address, data_client):
         et_tool.add_or_append_local_client_csv_files()
         try:
             subprocess.run(shlex.quote("aws s3 mv " + file_address + " " + bucket))  # Move local json file to S3
-            if move_data_files:
-                subprocess.run(shlex.qoute("aws s3 cp" + file_address + " " + csv_bucket_address))  # Copy local daily record csv file to S3
+            if end_of_hour:
+                subprocess.run(shlex.qoute(
+                    "aws s3 cp" + file_address + " " + csv_bucket_address))  # Copy local daily record csv file to S3
                 # Here we can also add some logic to move other file types from ETL to S3, like gold records
                 # subprocess.run(shlex.quote("aws s3 cp " + file_address + " " + parquet_bucket_address))
         except Exception:

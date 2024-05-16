@@ -200,6 +200,6 @@ class ETEngine:
         else:
             self.updated_df[self.client].to_csv(self.client_csv_file_address[self.client], index=False)
 
-    def save_files_on_exit(self):
+    def save_all_files_on_exit(self):
         for client, file_locations in self.client_csv_file_address.items():
             self.updated_df[client].to_csv(file_locations, index=False)  # Save over previous DF with concat version
