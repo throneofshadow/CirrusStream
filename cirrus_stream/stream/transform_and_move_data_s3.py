@@ -12,6 +12,7 @@
     @notes: Currently only supported through CirrusStream.sh script.
 
 """
+import os
 import pandas as pd
 import glob
 import subprocess
@@ -130,6 +131,9 @@ for idx, client in enumerate(clients):
     if IP[idx] != '/n' and keys[idx] != '/n' and idx < 1:  # remove idx condition to move beyond labrat
         s3_file_path = s3_address + str(client) + '/'  # Current day folder
         etl_and_transfer_data(local_address, s3_file_path, client)
-        # etl into csv format
-        # append a local .csv file, send to S3 as silver record
-        # perform ETL, save as parquet as gold record
+
+
+if __name__ == "__main__":
+    s3_file_path = os.getcwd()
+    client = 'test'
+    etl_and_transfer_data(local_address, s3_file_path, client)

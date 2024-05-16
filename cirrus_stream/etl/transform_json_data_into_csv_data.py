@@ -16,8 +16,10 @@ import pandas as pd
 import json
 import glob
 import os
+import subprocess
 import shlex
 from transform_csv_data_into_db import DatabaseFormatter as dbf
+
 pd.options.mode.string_storage = "pyarrow"  # use pyarrow as string storage backend to improve speed
 
 
@@ -43,21 +45,24 @@ def clean_json(file_address):
         @return: None        @returns: None
 
     """
-    with open(file_address, 'a+') as f:
-        f.seek(f.tell() - 1, os.SEEK_SET)
-        f.truncate()
-        f.write('\n')
-        f.write(']')
-    f.close()
-    with open(file_address, 'r+') as f:
-        f.seek(0, 0)  # Seek to first position
-        f.write('[\n{')
-    f.close()
+    with open(file_address.split('_log.json')[0] + '_bronze_log.json', 'wb') as f2:
+        with open(file_address, 'a+') as f:
+            f.seek(f.tell() - 1, os.SEEK_SET)
+            f.truncate()
+            f.write('\n')
+            f.write(']')
+        f.close()
+        with open(file_address, 'r+') as f:
+            f.seek(0, 0)  # Seek to first position
+            f.write('[\n{')
+        f.close()
+    f2.close()
     return
 
 
 def open_json_file(file_address, clean=False):
-    """ Function intended to provide cleaning, reading functionality for json data structures.
+    """
+    Function intended to provide cleaning, reading functionality for json data structures.
         Json data structures are un-even w.r.t. each structure, however are consistent in structure between
         record type. Json data structures must be cleaned (remove trailing comma, add list indices) before
         reading can occur. Use the 'clean_json' function.
@@ -71,18 +76,26 @@ def open_json_file(file_address, clean=False):
     """
     with open(file_address) as f:
         try:
-            return json.load(f)
+            data = json.load(f)  # Try to load with no errors, if structured correctly..
+            # copy into bronze log.
+            subprocess.run('cp ' + file_address + ' ' + file_address.split('_log.json')[0] + '_bronze_log.json')
+            f.close()
+            return data
         except Exception:
             f.close()  # close file attempting to be cleaned.
             if clean:
                 try:
                     print('Sanitizing JSON file. ')
-                    clean_json(file_address)
-                    with open(file_address) as ff:
+                    clean_json(file_address)  # Sanitize json file.
+                    with open(file_address.split('_log.json')[0] + '_bronze_log.json') as ff:
                         data = json.load(ff)
                         ff.close()
                         return data
                 except Exception:
+                    try:
+                        ff.close()
+                    except Exception:
+                        print('Cannot load file ' + str(file_address))
                     print('cannot load file ' + str(file_address))
                     return IOError
 
@@ -93,7 +106,7 @@ class ETEngine:
     using the cirrus_stream.sh script. The class instance is intended to be used in conjunction with a local file
     system to store and load data. For non-local data, see 'extract_transform_data_datalake.py'. """
 
-    def __init__(self, client, file_address, YY, MM, DD, current_file_exists=False, path_prefix='/home/ubuntu/data/') -> None:
+    def __init__(self, client, file_address, YY, MM, DD, current_file_exists=False, path_prefix=os.getcwd()) -> None:
         """
         Initializes the  class instance with default values for various attributes.
 
@@ -134,7 +147,7 @@ class ETEngine:
         self.append_and_merge_initial_csv_data()  # Append and merge csv files (silver)
         self.save_local_client_file()  # Save local csv file for transfer to S3, reading into DBF
         # initialize DBFormatter class, un-necessary if using DBF for formatting and interaction with data
-        self.DB_connection = dbf(self.client_csv_file_address[self.client])
+        # self.DB_connection = dbf(self.client_csv_file_address[self.client])
 
     def load_json_file(self) -> None:
         """
@@ -146,7 +159,7 @@ class ETEngine:
         If an exception occurs during the loading process, an empty list is generated.
         """
         try:
-            self.client_json_data = open_json_file(self.file_address)  # Returns a s>
+            self.client_json_data = open_json_file(self.file_address)
         except Exception:  # empty.
             self.client_json_data = []
             print('Cant load json data')
@@ -186,7 +199,7 @@ class ETEngine:
             if verbose:
                 print(self.current_file_exists, self.new_file)
 
-    def append_and_merge_initial_csv_data(self) -> None:
+    def append_and_merge_initial_csv_data(self) -> int:
         """
         A function to append and merge the initial CSV data for the client instance.
 
@@ -198,7 +211,7 @@ class ETEngine:
             None
 
         Returns:
-            None
+            int: 1 if successful, 0 if an exception occurs.
         """
         try:
             new_data = pd.DataFrame(self.client_json_data)
@@ -217,14 +230,16 @@ class ETEngine:
                 print('bad file, dont add to existing file.')
         # Load current data, or generate new dataframe object
         if self.current_file_exists is True and self.new_data_flag:
-            data_file = self.client_csv_data[self.client]
-            self.updated_df[self.client] = pd.concat([data_file, new_data]).drop_duplicates()
-            print(data_file.shape)
+            csv_data_file = self.client_csv_data[self.client]
+            self.updated_df[self.client] = pd.concat([csv_data_file, new_data]).drop_duplicates()
+            print(csv_data_file.shape)
             print('current data file shape')
             print(self.updated_df[self.client].shape)
             print('updated data file shape')
+            return 1
         else:
             print('no file')  # Generate new dataframe object for concat event
+            return 0
         #        pdb.set_trace()
 
     def save_local_client_file(self) -> None:
@@ -254,3 +269,11 @@ class ETEngine:
         """
         for client, file_locations in self.client_csv_file_address.items():
             self.updated_df[client].to_csv(file_locations, index=False)  # Save over previous DF with concat version
+
+
+if __name__ == "__main__":
+    data_file = '/data/test_2024_05_16_silver_log.csv'
+    #data_file = input("Data file to be monitored")
+    ETEngine()
+    DB = ETEngine(data_file)
+    pdb.set_trace()

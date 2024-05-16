@@ -168,7 +168,7 @@ class DatabaseFormatter:
 
 
 if __name__ == "__main__":
-    data_file = 'C:/Users/YouSolar Office/PycharmProjects/CirrusStream/data/app_test_data.csv'
+    data_file = '/data/test_2024_05_16_silver_log.csv'
     #data_file = input("Data file to be monitored")
     DB = DatabaseFormatter(data_file)
     pdb.set_trace()
