@@ -1,5 +1,7 @@
 import sys, os
 
+sys.path.insert(0, os.path.abspath(os.path.join('..', '..', 'cirrus_stream')))
+
 sys.path.append(os.path.abspath('sphinxext'))
 
 # -- Path setup --------------------------------------------------------------
@@ -21,7 +23,7 @@ sys.path.append(etl_root)
 
 # Function to append system path with all info necessary to populate docstrings
 
-for x in os.walk('software'):
+for x in os.walk('cirrus_stream'):
     sys.path.insert(0, x[0])
 
 # -- Project information -----------------------------------------------------
@@ -37,7 +39,6 @@ release = 'beta'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
-    'sphinx_rtd_theme',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx.ext.doctest',
@@ -56,15 +57,13 @@ napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 
 
-todo_include_todos = True
+#todo_include_todos = True
 
 # tell autodoc which imports to mock
 autodoc_mock_imports = [
-    'pandas', 'numpy', 'paramiko', 'scp', 'pyarrow', 'setuptools', 'sphinx',
+    'pandas', 'numpy', 'paramiko', 'scp', 'pyarrow', 'setuptools', 'sphinx', 'sphinx_rtd_theme'
 ]
 
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -72,7 +71,7 @@ templates_path = ['_templates']
 # source_suffix = ['.rst', '.md']
 source_suffix = '.rst'
 # source parser = 'md'
-source_parsers = {'.md': 'recommonmark.parser.CommonMarkParser'}
+source_parsers = {'.md': '.rst'}
 # The master toctree document.
 master_doc = 'index'
 
@@ -96,12 +95,12 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
-html_logo = '_static/cirrus_2.png'
-html_theme_options = {'logo_only': False}
+#html_theme = 'sphinx_rtd_theme'
+#html_logo = '/_static/cirrus_2.png'
+#html_theme_options = {'logo_only': False}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']
-html_static_path = []
+html_static_path = ['_static']
+#html_static_path = []

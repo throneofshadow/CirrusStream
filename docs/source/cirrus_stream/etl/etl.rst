@@ -13,16 +13,3 @@ into a file able to be read into common json parsing algorithms.
 
 A 'silver' log file is a row-column relational structure, generally in .csv format.
 Silver log files are over an entire day, for an individual edge client.
-
-.. automodule:: transform_csv_data_into_db.DatabaseFormatter
-    :members:
-
-.. automodule:: transform_csv_data_into_db.read_csv_file_pandas
-    :members:
-
-.. automodule:: transform_csv_data_into_db.DatabaseFormatter.refresh_database
-    :members:
-
-.. automodule:: transform_csv_data_into_db.DatabaseFormatter.set_up_static_dataframes_for_physical_units
-    :members:
-
