@@ -1,6 +1,6 @@
-import sys, os
+import sys, os, pdb
 
-sys.path.insert(0, os.path.abspath(os.path.join('..', '..', 'cirrus_stream')))
+#sys.path.insert(0, os.path.abspath(os.path.join('..', '..', '/cirrus_stream')))
 
 sys.path.append(os.path.abspath('sphinxext'))
 
@@ -8,10 +8,10 @@ sys.path.append(os.path.abspath('sphinxext'))
 
 # Set the software project root dirs
 cirrus_root = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cirrus_stream/")
-test_root = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cirrus_stream/tests")
-stream_root = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cirrus_stream/stream")
-monitoring_root = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cirrus_stream/monitoring")
-etl_root = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cirrus_stream/etl")
+test_root = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cirrus_stream/tests/")
+stream_root = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cirrus_stream/stream/")
+monitoring_root = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cirrus_stream/monitoring/")
+etl_root = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cirrus_stream/etl/")
 # Insert the project root dir as the first element in the PYTHONPATH.
 # This lets us ensure that the source package is imported, and that its
 # version is used.
@@ -95,7 +95,7 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-#html_theme = 'sphinx_rtd_theme'
+html_theme = 'sphinx_rtd_theme'
 #html_logo = '/_static/cirrus_2.png'
 #html_theme_options = {'logo_only': False}
 
