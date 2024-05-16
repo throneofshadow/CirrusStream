@@ -117,10 +117,10 @@ def etl_and_transfer_data(local_address_file, s3_bucket_address, data_client) ->
 
 
 # Base addresses
-local_address = '/home/ubuntu/'
+local_address = '/home/ubuntu/data/'
 s3_address = "s3://streamingawsbucket/data/"
 # Base configuration
-configuration_file = pd.read_csv('optconnect_config.csv')
+configuration_file = pd.read_csv(local_address + 'optconnect_config.csv')
 
 # Set individual variables to make things more clear.
 clients = configuration_file['Client']

@@ -85,7 +85,7 @@ class SystemMonitoring:
         else:
             os.system('touch /home/ubuntu/data/streaming_alert.txt')
             #os.system('aws s3 cp /home/ubuntu/data/streaming_alert.txt s3://streamingawsbucket/logging/streaming_alert.txt')
-            os.system('python3 send_email.py')
+            os.system('python3 ~/cirrus_stream/monitoring/send_email.py')
             print('Sent alert')
             self.sent_alert = True
             self.num_alert_loops += 1
