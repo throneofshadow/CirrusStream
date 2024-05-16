@@ -1,0 +1,7 @@
+pandas~=2.2.2
+pyarrow~=16.0.0
+setuptools
+sphinx >= 7.3.6
+paramiko
+scp
+
