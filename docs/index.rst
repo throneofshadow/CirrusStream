@@ -13,7 +13,3 @@ of raw json data and a 'silver' record which has been standardized.
    :maxdepth: 2
    :caption: Contents:
 
-   cirrus_stream/overview
-   cirrus_stream/install
-   cirrus_stream/support
-   cirrus_stream/cirrus_stream
