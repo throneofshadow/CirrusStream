@@ -93,7 +93,7 @@ def etl_and_transfer_data(local_address_file, s3_bucket_address, data_client) ->
         # match up file names by splitting and assigning last file name
         [partition_name, partition_names] = partition_filename(file_address, part_type='/')
         csv_partition_name = (data_client + '_' + partition_names[1] + '_' + partition_names[2] + '_'
-                              + partition_names[3] + '_' + '_silver_log.csv')
+                              + partition_names[3] + '_silver_log.csv')
         bucket = (s3_bucket_address + partition_names[1] + '/' + partition_names[2] +
                   '/' + partition_names[3] + '/Hour' + partition_names[4] + '/' + partition_name)
         csv_bucket_address = (s3_bucket_address + partition_names[1] + '/' + partition_names[2] +

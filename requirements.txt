@@ -6,4 +6,4 @@ jinja2
 sphinx >= 7.3.6
 paramiko
 scp
-
+cryptography==36.0.0
